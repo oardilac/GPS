@@ -24,6 +24,9 @@ const MapComponent = dynamic(() => import("@/components/map"), {
   ),
 });
 
+// ID único para este dispositivo
+const DEVICE_ID = "web-client-" + Math.random().toString(36).substring(2, 9);
+
 export default function GeolocalizacionPage() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     null
@@ -33,6 +36,7 @@ export default function GeolocalizacionPage() {
   const [connectionStatus, setConnectionStatus] = useState("Desconectado");
   const [lastSent, setLastSent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   // Función para obtener la ubicación actual
   const getCurrentLocation = () => {
@@ -104,14 +108,19 @@ export default function GeolocalizacionPage() {
     lng: number;
   }) => {
     try {
+      setIsSending(true);
+      setConnectionStatus("Enviando...");
+
       await publishLocationToAWS({
         latitude: locationData.lat,
         longitude: locationData.lng,
         timestamp: new Date().toISOString(),
-        deviceId: "web-client-" + Math.random().toString(36).substring(2, 9),
+        deviceId: DEVICE_ID,
       });
 
       setLastSent(new Date().toLocaleTimeString());
+      setConnectionStatus("Conectado");
+      setError(null);
     } catch (err) {
       console.error("Error al enviar datos a AWS IoT:", err);
       setError(
@@ -119,6 +128,9 @@ export default function GeolocalizacionPage() {
           err instanceof Error ? err.message : String(err)
         }`
       );
+      setConnectionStatus("Error de conexión");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -179,7 +191,7 @@ export default function GeolocalizacionPage() {
             </Button>
             <Button
               onClick={toggleTracking}
-              variant={isTracking ? "default" : "default"}
+              variant={isTracking ? "destructive" : "default"}
             >
               {isTracking ? "Detener Seguimiento" : "Iniciar Seguimiento"}
             </Button>
@@ -204,6 +216,8 @@ export default function GeolocalizacionPage() {
                     className={`h-3 w-3 rounded-full ${
                       connectionStatus === "Conectado"
                         ? "bg-green-500"
+                        : connectionStatus === "Enviando..."
+                        ? "bg-yellow-500"
                         : "bg-red-500"
                     }`}
                   ></div>
@@ -226,7 +240,7 @@ export default function GeolocalizacionPage() {
                         latitude: location.lat,
                         longitude: location.lng,
                         timestamp: new Date().toISOString(),
-                        deviceId: "web-client",
+                        deviceId: DEVICE_ID,
                       },
                       null,
                       2
@@ -238,13 +252,20 @@ export default function GeolocalizacionPage() {
                   </p>
                 )}
               </div>
+
+              {error && (
+                <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+                  <h3 className="font-medium mb-2 text-red-700">Error:</h3>
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>
             <Button
               className="w-full"
               onClick={() => location && sendLocationToAWS(location)}
-              disabled={!location || isTracking}
+              disabled={!location || isTracking || isSending}
             >
               <Send className="h-4 w-4 mr-2" />
               Enviar Datos Manualmente

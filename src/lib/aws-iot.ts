@@ -1,5 +1,4 @@
-// Interfaz para los datos de ubicación
-interface LocationData {
+export interface LocationData {
   latitude: number;
   longitude: number;
   timestamp: string;
@@ -11,11 +10,7 @@ export async function publishLocationToAWS(
   locationData: LocationData
 ): Promise<void> {
   try {
-    // Aquí necesitarás configurar tus credenciales de AWS
-    // Para la entrega 2, puedes usar la API Gateway como intermediario
-    // o configurar Cognito para autenticación desde el navegador
-
-    // Ejemplo usando una API Gateway (recomendado para web)
+    // Usar la API REST como intermediario para publicar en AWS IoT
     const response = await fetch("/api/publish-location", {
       method: "POST",
       headers: {
@@ -25,7 +20,10 @@ export async function publishLocationToAWS(
     });
 
     if (!response.ok) {
-      throw new Error(`Error al publicar: ${response.statusText}`);
+      const errorData = await response.json();
+      throw new Error(
+        `Error al publicar: ${errorData.error || response.statusText}`
+      );
     }
 
     return await response.json();

@@ -25,19 +25,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Preparar el mensaje para AWS IoT
-    const params = {
-      topic: "devices/location",
+    // 1. Publicar en un tema normal para ser visualizado en el cliente MQTT
+    const topicParams = {
+      topic: "devices/GPS/location",
       payload: JSON.stringify(locationData),
       qos: 0,
     };
 
-    // Publicar el mensaje
-    await iotdata.publish(params).promise();
+    await iotdata.publish(topicParams).promise();
+
+    // 2. Actualizar la sombra del dispositivo
+    const shadowParams = {
+      thingName: "GPS",
+      payload: JSON.stringify({
+        state: {
+          reported: {
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+            timestamp: locationData.timestamp,
+            deviceId: locationData.deviceId,
+          },
+        },
+      }),
+    };
+
+    await iotdata.updateThingShadow(shadowParams).promise();
 
     return NextResponse.json({
       success: true,
-      message: "Ubicación publicada correctamente",
+      message: "Ubicación publicada y sombra actualizada correctamente",
     });
   } catch (error) {
     console.error("Error al publicar en AWS IoT:", error);
