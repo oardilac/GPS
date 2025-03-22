@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import AWS from "aws-sdk";
+import { LocationData } from "@/lib/types";
 
 // Configurar AWS SDK
 AWS.config.update({
@@ -15,12 +16,16 @@ const iotdata = new AWS.IotData({
 
 export async function POST(request: Request) {
   try {
-    const locationData = await request.json();
+    const locationData: LocationData = await request.json();
 
     // Validar los datos recibidos
-    if (!locationData.latitude || !locationData.longitude) {
+    if (
+      !locationData.latitude ||
+      !locationData.longitude ||
+      !locationData.userName
+    ) {
       return NextResponse.json(
-        { error: "Se requieren latitud y longitud" },
+        { error: "Se requieren latitud, longitud y nombre de usuario" },
         { status: 400 }
       );
     }
@@ -44,6 +49,7 @@ export async function POST(request: Request) {
             longitude: locationData.longitude,
             timestamp: locationData.timestamp,
             deviceId: locationData.deviceId,
+            userName: locationData.userName,
           },
         },
       }),

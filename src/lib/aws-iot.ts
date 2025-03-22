@@ -1,9 +1,4 @@
-export interface LocationData {
-  latitude: number;
-  longitude: number;
-  timestamp: string;
-  deviceId: string;
-}
+import { LocationData } from "./types";
 
 // Función para publicar la ubicación en AWS IoT Core
 export async function publishLocationToAWS(
